@@ -1,0 +1,19 @@
+name: stream_d
+description: Stream that triggers the onDone event handler even when cancel() is called from a subscription. You can also add multiple onDone listeners and close all subscriptions from the stream. StreamD is based on the default Dart Stream.
+version: 0.0.1
+homepage: https://github.com/RodrigoBertotti/StreamD
+
+environment:
+  sdk: '>=3.1.5 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
