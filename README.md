@@ -59,32 +59,32 @@ You can either initialize a Stream from a controller in case you have access to 
 
 #### Initializing StreamD from a controller
 ```dart
-    final controller = StreamController();
-    final StreamD = StreamD(controller: controller);
+final controller = StreamController();
+final StreamD = StreamD(controller: controller);
 ```
 #### Initializing StreamD from a stream
 ```dart
-    final stream = firestore.collection("messages").doc(conversationId).snapshots();
-    final StreamD = StreamD.fromStream(stream);
+final stream = firestore.collection("messages").doc(conversationId).snapshots();
+final StreamD = StreamD.fromStream(stream);
 ```
 ## Usage
 
 ### Listening
 ```dart
-    final subscription = StreamD.listenD((event) {
-        print(event);
-    });
+final subscription = StreamD.listenD((event) {
+    print(event);
+});
 ```
 ### Adding onDone listener to a subscription
 ```dart
-    final subscription = StreamD.listenD((event) {});
-    subscription.addOnDone(() {
-        print("onDone was called!");
-    });
+final subscription = StreamD.listenD((event) {});
+subscription.addOnDone(() {
+    print("onDone was called!");
+});
 ```
 ### In case you want to close all subscriptions
 ```dart
-    StreamD.close();
+StreamD.close();
 ```
 ### Avoid calling listen and onDone from StreamD
 
