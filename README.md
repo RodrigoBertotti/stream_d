@@ -15,7 +15,7 @@ The solution when calling `listenD`
 - `onDone` event handler is always triggered once the stream is no longer active, even when `cancel()` is called from a `StreamSubscription`.
 
 `StreamD` also allows you to add a listener with `addOnDone` that won't replace the previous `onDone` callback
-and you can also close all `StreamSubscription by calling `closeAll`
+and you can also close all `StreamSubscription` by calling `closeAll`
 
 ## Comparison
 
