@@ -31,7 +31,7 @@ defaultStreamSubscription.cancel();
 
 final controller2 = StreamController();
 final StreamD = StreamD(controller: controller2);
-final StreamDSubscription = StreamD.listenD((event) {});
+final StreamDSubscription = streamD.listenD((event) {});
 StreamDSubscription.addOnDone(() {
   print("(2) With StreamD: onDone was triggered!");
 });
@@ -60,31 +60,31 @@ You can either initialize a Stream from a controller in case you have access to 
 #### Initializing StreamD from a controller
 ```dart
 final controller = StreamController();
-final StreamD = StreamD(controller: controller);
+final streamD = StreamD(controller: controller);
 ```
 #### Initializing StreamD from a stream
 ```dart
 final stream = firestore.collection("messages").doc(conversationId).snapshots();
-final StreamD = StreamD.fromStream(stream);
+final streamD = StreamD.fromStream(stream);
 ```
 ## Usage
 
 ### Listening
 ```dart
-final subscription = StreamD.listenD((event) {
+final subscription = streamD.listenD((event) {
     print(event);
 });
 ```
 ### Adding onDone listener to a subscription
 ```dart
-final subscription = StreamD.listenD((event) {});
+final subscription = streamD.listenD((event) {});
 subscription.addOnDone(() {
     print("onDone was called!");
 });
 ```
 ### In case you want to close all subscriptions
 ```dart
-StreamD.close();
+streamD.close();
 ```
 ### Avoid calling listen and onDone from StreamD
 
