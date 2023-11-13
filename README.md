@@ -30,13 +30,13 @@ print("(1) Default Stream: let's call cancel() on the subscription...");
 defaultStreamSubscription.cancel();
 
 final controller2 = StreamController();
-final StreamD = StreamD(controller: controller2);
-final StreamDSubscription = streamD.listenD((event) {});
-StreamDSubscription.addOnDone(() {
+final streamD = StreamD(controller: controller2);
+final StreamSubscriptionD streamSubscriptionD = streamD.listenD((event) {});
+streamSubscriptionD.addOnDone(() {
   print("(2) With StreamD: onDone was triggered!");
 });
 print("(1) With StreamD: let's call cancel() on the subscription...");
-StreamDSubscription.cancel();
+streamSubscriptionD.cancel();
 ```
 ### Output:
 
@@ -51,7 +51,7 @@ StreamDSubscription.cancel();
         sdk: flutter
             
         # Add this line:
-        stream_d: ^0.0.2
+        stream_d: ^0.1.0
 
 ### Initializing a StreamD
 
@@ -71,24 +71,24 @@ final streamD = StreamD.fromStream(stream);
 
 ### Listening
 ```dart
-final subscription = streamD.listenD((event) {
+final StreamSubscriptionD subscription = streamD.listenD((event) {
     print(event);
 });
 ```
 ### Adding onDone listener to a subscription
 ```dart
-final subscription = streamD.listenD((event) {});
+final StreamSubscriptionD subscription = streamD.listenD((event) {});
 subscription.addOnDone(() {
     print("onDone was called!");
 });
 ```
 ### In case you want to close all subscriptions
 ```dart
-streamD.close();
+streamD.closeAll();
 ```
 ### Avoid calling listen and onDone from StreamD
 
-It's important to call these methods when using `StreamD`:
+It's important to call these methods when using `StreamD` and `StreamSubscriptionD`:
 - **call listenD**, not `listen`
 - **call addOnDone**, not `onDone`
 

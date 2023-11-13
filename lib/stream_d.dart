@@ -86,7 +86,7 @@ class StreamD<T> extends Stream<T>{
 
   /// Useful for StreamBuilder only, use [listenD] instead.
   @override @Deprecated("Internal usage only, please call [listenD] instead")
-  StreamSubscriptionDon<T> listen(void Function(T event)? onData, {Function? onError, void Function()? onDone, bool? cancelOnError}) {
+  StreamSubscriptionD<T> listen(void Function(T event)? onData, {Function? onError, void Function()? onDone, bool? cancelOnError}) {
     if (kDebugMode && !StackTrace.current.toString().contains("package:flutter/")) {
       if (kDebugMode) print("[StreamD] ⚠️ You are calling listen(..) but it's for internal usage only, please call listenD(..) instead");
     }
@@ -95,12 +95,12 @@ class StreamD<T> extends Stream<T>{
   }
 
   int _listeners = 0;
-  StreamSubscriptionDon<T> listenD(void Function(T event)? onData, {Function? onError, void Function()? onDone, bool? cancelOnError}) {
+  StreamSubscriptionD<T> listenD(void Function(T event)? onData, {Function? onError, void Function()? onDone, bool? cancelOnError}) {
     _listeners++;
     return _listenImp(onData, triggerOnDoneFromCancelCall: true, onDone: onDone, cancelOnError: cancelOnError, onError: onError);
   }
 
-  StreamSubscriptionDon<T> _listenImp(void Function(T event)? onData, {required bool triggerOnDoneFromCancelCall, Function? onError, void Function()? onDone, bool? cancelOnError}) {
+  StreamSubscriptionD<T> _listenImp(void Function(T event)? onData, {required bool triggerOnDoneFromCancelCall, Function? onError, void Function()? onDone, bool? cancelOnError}) {
     assert(!_controller.isClosed, "This stream is no longer active");
 
     late final StreamSubscription<T> subscription;
@@ -137,7 +137,7 @@ class StreamD<T> extends Stream<T>{
     _onCloseSubscriptionCallbacks.add(closeThis);
     subscription = _controller.stream.listen(onData, onError: onError, onDone: closeThis, cancelOnError: cancelOnError);
 
-    return StreamSubscriptionDon<T>(
+    return StreamSubscriptionD<T>(
       subscription: subscription,
       cancel: closeThis,
       onDone: (handler) => onDoneHandler = handler,
@@ -327,7 +327,7 @@ class StreamD<T> extends Stream<T>{
 
 /// Remember to
 /// - call [addOnDone], not [onDone]
-class StreamSubscriptionDon<T> implements StreamSubscription<T> {
+class StreamSubscriptionD<T> implements StreamSubscription<T> {
   late final Future<void> Function() _cancel;
   late final StreamSubscription<T> _subscription;
   late final void Function(void Function()? handleDone) _onDone;
@@ -335,7 +335,7 @@ class StreamSubscriptionDon<T> implements StreamSubscription<T> {
   late final void Function(void Function() handleDone) _removeOnDone;
 
 
-  StreamSubscriptionDon({
+  StreamSubscriptionD({
     required Future<void> Function() cancel,
     required void Function(void Function()? handleDone) onDone,
     required void Function(void Function() handleDone) addOnDone,
@@ -358,7 +358,7 @@ class StreamSubscriptionDon<T> implements StreamSubscription<T> {
   /// Useful for StreamBuilder only, use [addOnDone] instead.
   void onDone(void Function()? handleDone) {
     if (kDebugMode && !StackTrace.current.toString().contains("package:flutter/")) {
-      if (kDebugMode) print("[StreamSubscriptionDon] ⚠️ You are calling onDone(..) but it's for internal usage only, please use addOnDone(..) instead");
+      if (kDebugMode) print("[StreamSubscriptionD] ⚠️ You are calling onDone(..) but it's for internal usage only, please use addOnDone(..) instead");
     }
     return _onDone(handleDone);
   }
