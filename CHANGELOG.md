@@ -1,3 +1,7 @@
+## v0.3.0
+* `listen` method is disabled, because it may give an 
+`Bad state: Stream has already been listened to.` error on a StreamBuilder.
+
 ## v0.2.1
 * "description" update on pubspec.yaml
 

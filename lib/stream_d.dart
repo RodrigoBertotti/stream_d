@@ -6,7 +6,10 @@ import 'package:flutter/foundation.dart';
 class StreamD<T> extends Stream<T>{
   final Stream<T> _stream;
 
-  StreamD(this._stream);
+  StreamD(this._stream) {
+    _stackTrace = StackTrace.current;
+    assert(_stream is! StreamD);
+  }
 
   @override
   bool get isBroadcast => _stream.isBroadcast;
@@ -14,8 +17,13 @@ class StreamD<T> extends Stream<T>{
   /// Useful for StreamBuilder only, use [listenD] instead.
   @override @Deprecated("Internal usage only, please call [listenD] instead")
   StreamSubscription<T> listen(void Function(T event)? onData, {Function? onError, void Function()? onDone, bool? cancelOnError}) {
+    print(_stackTrace);
+
+    // Throwing this error to avoid the weird error "Bad state: Stream has already been listened to."
+    // TODO: fork from dart async package?
+
     if (kDebugMode && !StackTrace.current.toString().contains("package:flutter/")) {
-      if (kDebugMode) print("[StreamD] ⚠️ You are calling listen(..) but it's for internal usage only, please call listenD(..) instead");
+      throw "[StreamD] Do not call listen, please call listenD(..) instead. If you still want to use listen(..), please use the default Dart Stream";
     }
     return _stream.listen(onData, onDone: onDone, cancelOnError: cancelOnError, onError: onError);
   }
