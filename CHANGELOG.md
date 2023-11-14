@@ -1,3 +1,6 @@
+## v0.2.1
+* "description" update on pubspec.yaml
+
 ## v0.2.0
 * Fixes and adjustments
 * `closeAll` method removed

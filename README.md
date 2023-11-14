@@ -51,7 +51,7 @@ streamSubscriptionD.cancel();
         sdk: flutter
             
         # Add this line:
-        stream_d: ^0.2.0
+        stream_d: ^0.2.1
 
 ### Initializing a StreamD
 
