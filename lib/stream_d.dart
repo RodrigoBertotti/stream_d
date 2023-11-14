@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 /// **[Check the full documentation on GitHub](https://github.com/RodrigoBertotti/stream_d)**
 class StreamD<T> extends Stream<T>{
   final Stream<T> _stream;
+  late final StackTrace _stackTrace;
 
   StreamD(this._stream) {
     _stackTrace = StackTrace.current;
@@ -25,7 +26,7 @@ class StreamD<T> extends Stream<T>{
     if (kDebugMode && !StackTrace.current.toString().contains("package:flutter/")) {
       throw "[StreamD] Do not call listen, please call listenD(..) instead. If you still want to use listen(..), please use the default Dart Stream";
     }
-    return _stream.listen(onData, onDone: onDone, cancelOnError: cancelOnError, onError: onError);
+    throw "[StreamD] StreamBuilder does not support StreamD, please use the default Dart Stream instead";
   }
 
   StreamSubscriptionD<T> listenD(void Function(T event)? onData, {Function? onError, void Function()? onDone, bool? cancelOnError}) {
