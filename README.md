@@ -1,13 +1,13 @@
 # StreamD
 
 Stream that triggers the `onDone` event handler even when `cancel()` is called from a subscription.
-You can also add multiple `onDone` listeners and close all subscriptions from the stream.
-`StreamD` is based on the default Dart Stream.
+You can also add multiple `onDone` listeners.
+`StreamD` is a wrapper on the default Dart Stream, but with an additional `listenD` method.
 
 ## About StreamD
 
-The problem with default streams:
-- the default `onDone` event handler is not triggered when `cancel()` is called from a `StreamSubscription`,
+The minor hassle with default Dart Streams:
+- the `onDone` event handler is not triggered when `cancel()` is called from a `StreamSubscription`,
 so it may be tricky to identify the exact moment when a `StreamSubscription` became no longer active if
 we don't have access to its `StreamController` on a specific layer of the App.
 
@@ -24,16 +24,16 @@ final controller1 = StreamController();
 final defaultStream = controller1.stream;
 final defaultStreamSubscription = defaultStream.listen((event) {});
 defaultStreamSubscription.onDone(() {
-  print("(2) Default Stream: onDone was triggered!");
+print("(2) Default Stream: onDone was triggered!");
 });
 print("(1) Default Stream: let's call cancel() on the subscription...");
 defaultStreamSubscription.cancel();
 
 final controller2 = StreamController();
-final streamD = StreamD(controller: controller2);
+final streamD = StreamD(controller2.stream);
 final StreamSubscriptionD streamSubscriptionD = streamD.listenD((event) {});
 streamSubscriptionD.addOnDone(() {
-  print("(2) With StreamD: onDone was triggered!");
+print("(2) With StreamD: onDone was triggered!");
 });
 print("(1) With StreamD: let's call cancel() on the subscription...");
 streamSubscriptionD.cancel();
@@ -51,21 +51,12 @@ streamSubscriptionD.cancel();
         sdk: flutter
             
         # Add this line:
-        stream_d: ^0.1.0
+        stream_d: ^0.2.0
 
 ### Initializing a StreamD
 
-You can either initialize a Stream from a controller in case you have access to it, or from a Stream (e.g. from Firebase)
-
-#### Initializing StreamD from a controller
 ```dart
-final controller = StreamController();
-final streamD = StreamD(controller: controller);
-```
-#### Initializing StreamD from a stream
-```dart
-final stream = firestore.collection("messages").doc(conversationId).snapshots();
-final streamD = StreamD.fromStream(stream);
+final streamD = StreamD(stream);
 ```
 ## Usage
 
@@ -82,10 +73,7 @@ subscription.addOnDone(() {
     print("onDone was called!");
 });
 ```
-### In case you want to close all subscriptions
-```dart
-streamD.closeAll();
-```
+
 ### Avoid calling listen and onDone from StreamD
 
 It's important to call these methods when using `StreamD` and `StreamSubscriptionD`:
@@ -93,7 +81,7 @@ It's important to call these methods when using `StreamD` and `StreamSubscriptio
 - **call addOnDone**, not `onDone`
 
 `listen` and `onDone` are available for `StreamBuilder` internal usage only, so
-if you want to still use them, please use the default `Stream` instead.
+if you want to still use them, please use the default Dart `Stream` instead.
 
 ## License
 

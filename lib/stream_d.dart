@@ -2,325 +2,227 @@ library stream_d;
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 
-/// **[Check the full documentation on GitHub](https://github.com/RodrigoBertotti/StreamD)**
-///
-///The problem with default streams:
-/// - the default [onDone] event handler is not triggered when [cancel] is called from a [StreamSubscription],
-/// so it may be tricky to identify the exact moment when a [StreamSubscription] became no longer active if
-/// we don't have access to its [StreamController] on a specific layer of the App.
-///
-/// The solution when calling [listenD]
-/// - [onDone] event handler is always triggered once the stream is no longer active, even when [cancel] is called from a [StreamSubscription].
-///
-/// [StreamD] also allows you to add a listener with [addOnDone] that won't replace the previous [onDone] callback
-/// and you can also close all [StreamSubscription] by calling [closeAll].
-///
-/// It's important to call these methods when using [StreamD]:
-/// - call [listenD], not [listen]
-/// - call [addOnDone], not [onDone]
+/// **[Check the full documentation on GitHub](https://github.com/RodrigoBertotti/stream_d)**
 class StreamD<T> extends Stream<T>{
-  late final StreamController<T> _controller;
-  final List<void Function()> _onCloseSubscriptionCallbacks = [];
+  final Stream<T> _stream;
 
-  StreamD({required StreamController<T> controller}) {
-    _controller = controller;
-    _initMyStream();
-  }
-
-  StreamD.broadcast({required StreamController<T> controller}) { // TODO: check
-    _controller = controller;
-    _initMyStream();
-  }
-
-  bool _initialized = false;
-  void _initMyStream() {
-    if (!_initialized) {
-      _initialized = true;
-      final externalOnCancelCtrl = _controller.onCancel ?? () {};
-      _controller.onCancel = () { // called only when no stream is listening (in case it's broadcast)
-        _listeners--;
-        Future.delayed(const Duration(milliseconds: 50), () { //delay for firestore
-          for (final onClose in List.from(_onCloseSubscriptionCallbacks)) {
-            onClose();
-          }
-          _onCloseSubscriptionCallbacks.clear();
-          externalOnCancelCtrl();
-        });
-      };
-    }
-  }
-
-  /// Closes all subscriptions
-  void closeAll () {
-    _controller.close();
-  }
-
-  StreamD.fromStream(Stream<T> stream) {
-    assert(stream is! StreamD, "This stream already emits onDone() events once subscription.cancel() is called");
-    StreamSubscription<T>? streamSubscription;
-    onListen() {
-      if (streamSubscription != null) {
-        if (kDebugMode) print("[StreamD] streamSubscription is not null");
-        return;
-      }
-      streamSubscription = stream.listen((event) {
-        _controller.add(event);
-      }, onDone: () { // in the default stream, onDone will not be called when cancel() is called
-        streamSubscription = null;
-        _controller.close();
-      });
-      _onCloseSubscriptionCallbacks.add(streamSubscription!.cancel);
-    }
-    onCancel() { // on close controller
-      Future.delayed(const Duration(milliseconds: 30), () {  // delay for firestore
-        streamSubscription?.cancel();
-        streamSubscription = null;
-      });
-    }
-    _controller = stream.isBroadcast ? StreamController.broadcast(onListen: onListen, onCancel: onCancel) : StreamController(onListen: onListen, onCancel: onCancel);
-    _initMyStream();
-  }
+  StreamD(this._stream);
 
   @override
-  bool get isBroadcast => _controller.stream.isBroadcast;
+  bool get isBroadcast => _stream.isBroadcast;
 
   /// Useful for StreamBuilder only, use [listenD] instead.
   @override @Deprecated("Internal usage only, please call [listenD] instead")
-  StreamSubscriptionD<T> listen(void Function(T event)? onData, {Function? onError, void Function()? onDone, bool? cancelOnError}) {
+  StreamSubscription<T> listen(void Function(T event)? onData, {Function? onError, void Function()? onDone, bool? cancelOnError}) {
     if (kDebugMode && !StackTrace.current.toString().contains("package:flutter/")) {
       if (kDebugMode) print("[StreamD] ⚠️ You are calling listen(..) but it's for internal usage only, please call listenD(..) instead");
     }
-    _listeners++;
-    return _listenImp(onData, triggerOnDoneFromCancelCall: false, onDone: onDone, cancelOnError: cancelOnError, onError: onError);
+    return _stream.listen(onData, onDone: onDone, cancelOnError: cancelOnError, onError: onError);
   }
 
-  int _listeners = 0;
   StreamSubscriptionD<T> listenD(void Function(T event)? onData, {Function? onError, void Function()? onDone, bool? cancelOnError}) {
-    _listeners++;
-    return _listenImp(onData, triggerOnDoneFromCancelCall: true, onDone: onDone, cancelOnError: cancelOnError, onError: onError);
-  }
+    void Function()? userOnDone = onDone;
+    final List<void Function()> onDoneList = [];
 
-  StreamSubscriptionD<T> _listenImp(void Function(T event)? onData, {required bool triggerOnDoneFromCancelCall, Function? onError, void Function()? onDone, bool? cancelOnError}) {
-    assert(!_controller.isClosed, "This stream is no longer active");
-
-    late final StreamSubscription<T> subscription;
-    final List<void Function()> onDoneListForCurrentSubscription = [];
-    void Function()? onDoneHandler = onDone;
-
-    bool closed = false;
-    Future<void> closeThis() async {
-      if (closed){
-        return;
+    onDoneHandler() {
+      if (userOnDone != null) {
+        userOnDone!();
+        userOnDone = null;
       }
-      _onCloseSubscriptionCallbacks.remove(closeThis);
-      closed = true;
-
-      Future.delayed(const Duration(milliseconds: 35), subscription.cancel);
-
-      for (final handler in List.from(onDoneListForCurrentSubscription)) {
-        handler();
+      for (final onDone in onDoneList) {
+        onDone();
       }
-
-      // e.g. if is not coming from a stream builder, call onDoneHandler
-      if (triggerOnDoneFromCancelCall) {
-        onDoneHandler?.call();
-      }
-
-      if (!isBroadcast) {
-        Future.delayed(const Duration(milliseconds: 100), () { // to avoid: "Bad state: Cannot add event after closing"
-          if (_listeners == 0) {
-            _controller.close();
-          }
-        });
-      }
+      onDoneList.clear();
     }
-    _onCloseSubscriptionCallbacks.add(closeThis);
-    subscription = _controller.stream.listen(onData, onError: onError, onDone: closeThis, cancelOnError: cancelOnError);
+    final subscription = _stream.listen(onData, onDone: onDoneHandler, cancelOnError: cancelOnError, onError: onError);
 
     return StreamSubscriptionD<T>(
       subscription: subscription,
-      cancel: closeThis,
-      onDone: (handler) => onDoneHandler = handler,
-      addOnDone: (handler) => onDoneListForCurrentSubscription.add(handler),
-      removeOnDone: (handler) => onDoneListForCurrentSubscription.remove(handler),
+      cancel: () {
+        onDoneHandler();
+        return subscription.cancel();
+      },
+      onDone: (onDone) {
+        userOnDone = onDone;
+      },
+      addOnDone: (handler) => onDoneList.add(handler),
+      removeOnDone: (handler) => onDoneList.remove(handler),
     );
   }
-
-
 
   @override
   Stream<T> asBroadcastStream(
       {void onListen(StreamSubscription<T> subscription)?,
         void onCancel(StreamSubscription<T> subscription)?}) {
-    return _controller.stream.asBroadcastStream(onListen: onListen, onCancel: onCancel);
+    return _stream.asBroadcastStream(onListen: onListen, onCancel: onCancel);
   }
 
   @override
   Stream<T> where(bool test(T event)) {
-    return _controller.stream.where(test);
+    return _stream.where(test);
   }
 
   @override
   Stream<S> map<S>(S convert(T event)) {
-    return _controller.stream.map(convert);
+    return _stream.map(convert);
   }
 
   @override
   Stream<E> asyncMap<E>(FutureOr<E> convert(T event)) {
-    return _controller.stream.asyncMap(convert);
+    return _stream.asyncMap(convert);
   }
 
   @override
   Stream<E> asyncExpand<E>(Stream<E>? convert(T event)) {
-    return _controller.stream.asyncExpand(convert);
+    return _stream.asyncExpand(convert);
   }
 
   @override
   Stream<T> handleError(Function onError, {bool test(error)?}) {
-    return _controller.stream.handleError(onError, test: test);
+    return _stream.handleError(onError, test: test);
   }
 
   @override
   Stream<S> expand<S>(Iterable<S> convert(T element)) {
-    return _controller.stream.expand(convert);
+    return _stream.expand(convert);
   }
 
   @override
   Future pipe(StreamConsumer<T> streamConsumer) {
-    return _controller.stream.pipe(streamConsumer);
+    return _stream.pipe(streamConsumer);
   }
 
   @override
   Stream<S> transform<S>(StreamTransformer<T, S> streamTransformer) {
-    return _controller.stream.transform(streamTransformer);
+    return _stream.transform(streamTransformer);
   }
 
   @override
   Future<T> reduce(T combine(T previous, T element)) {
-    return _controller.stream.reduce(combine);
+    return _stream.reduce(combine);
   }
 
   @override
   Future<S> fold<S>(S initialValue, S combine(S previous, T element)) {
-    return _controller.stream.fold(initialValue, combine);
+    return _stream.fold(initialValue, combine);
   }
 
   @override
   Future<String> join([String separator = ""]) {
-    return _controller.stream.join(separator);
+    return _stream.join(separator);
   }
 
   @override
   Future<bool> contains(Object? needle) {
-    return _controller.stream.contains(needle);
+    return _stream.contains(needle);
   }
 
   @override
   Future<void> forEach(void action(T element)) {
-    return _controller.stream.forEach(action);
+    return _stream.forEach(action);
   }
 
   @override
   Future<bool> every(bool test(T element)) {
-    return _controller.stream.every(test);
+    return _stream.every(test);
   }
 
   @override
   Future<bool> any(bool test(T element)) {
-    return _controller.stream.any(test);
+    return _stream.any(test);
   }
 
   @override
   Future<int> get length {
-    return _controller.stream.length;
+    return _stream.length;
   }
 
   @override
   Future<bool> get isEmpty {
-    return _controller.stream.isEmpty;
+    return _stream.isEmpty;
   }
 
   @override
-  Stream<R> cast<R>() => _controller.stream.cast();
+  Stream<R> cast<R>() => _stream.cast();
 
   @override
   Future<List<T>> toList() {
-    return _controller.stream.toList();
+    return _stream.toList();
   }
 
   @override
   Future<Set<T>> toSet() {
-    return _controller.stream.toSet();
+    return _stream.toSet();
   }
 
   @override
   Future<E> drain<E>([E? futureValue]) {
-    return _controller.stream.drain(futureValue);
+    return _stream.drain(futureValue);
   }
 
   @override
   Stream<T> take(int count) {
-    return _controller.stream.take(count);
+    return _stream.take(count);
   }
 
   @override
   Stream<T> takeWhile(bool test(T element)) {
-    return _controller.stream.takeWhile(test);
+    return _stream.takeWhile(test);
   }
 
   @override
   Stream<T> skip(int count) {
-    return _controller.stream.skip(count);
+    return _stream.skip(count);
   }
 
   @override
   Stream<T> skipWhile(bool test(T element)) {
-    return _controller.stream.skipWhile(test);
+    return _stream.skipWhile(test);
   }
 
   @override
   Stream<T> distinct([bool equals(T previous, T next)?]) {
-    return _controller.stream.distinct(equals);
+    return _stream.distinct(equals);
   }
 
   @override
   Future<T> get first {
-    return _controller.stream.first;
+    return _stream.first;
   }
 
   @override
   Future<T> get last {
-    return _controller.stream.last;
+    return _stream.last;
   }
 
   @override
   Future<T> get single {
-    return _controller.stream.single;
+    return _stream.single;
   }
 
   @override
   Future<T> firstWhere(bool test(T element), {T orElse()?}) {
-    return _controller.stream.firstWhere(test, orElse: orElse);
+    return _stream.firstWhere(test, orElse: orElse);
   }
 
   @override
   Future<T> lastWhere(bool test(T element), {T orElse()?}) {
-    return _controller.stream.lastWhere(test, orElse: orElse);
+    return _stream.lastWhere(test, orElse: orElse);
   }
 
   @override
   Future<T> singleWhere(bool test(T element), {T orElse()?}) {
-    return _controller.stream.singleWhere(test, orElse: orElse);
+    return _stream.singleWhere(test, orElse: orElse);
   }
 
   @override
   Future<T> elementAt(int index) {
-    return _controller.stream.elementAt(index);
+    return _stream.elementAt(index);
   }
 
   @override
   Stream<T> timeout(Duration timeLimit, {void onTimeout(EventSink<T> sink)?}) {
-    return _controller.stream.timeout(timeLimit, onTimeout: onTimeout);
+    return _stream.timeout(timeLimit, onTimeout: onTimeout);
   }
 
 }
